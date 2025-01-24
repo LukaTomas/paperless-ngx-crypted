@@ -11,33 +11,33 @@ from django.conf import settings
 from django.db.models import QuerySet
 from django.utils import timezone as django_timezone
 from guardian.shortcuts import get_users_with_perms
-from whoosh import classify
-from whoosh import highlight
-from whoosh import query
-from whoosh.fields import BOOLEAN
-from whoosh.fields import DATETIME
-from whoosh.fields import KEYWORD
-from whoosh.fields import NUMERIC
-from whoosh.fields import TEXT
-from whoosh.fields import Schema
-from whoosh.highlight import HtmlFormatter
-from whoosh.idsets import BitSet
-from whoosh.idsets import DocIdSet
-from whoosh.index import FileIndex
-from whoosh.index import create_in
-from whoosh.index import exists_in
-from whoosh.index import open_dir
-from whoosh.qparser import MultifieldParser
-from whoosh.qparser import QueryParser
-from whoosh.qparser.dateparse import DateParserPlugin
-from whoosh.qparser.dateparse import English
-from whoosh.qparser.plugins import FieldsPlugin
-from whoosh.reading import IndexReader
-from whoosh.scoring import TF_IDF
-from whoosh.searching import ResultsPage
-from whoosh.searching import Searcher
-from whoosh.util.times import timespan
-from whoosh.writing import AsyncWriter
+from miniwhoosh import classify # TODO: check what this does exactly... 
+from miniwhoosh import highlight # TODO: wont support!
+from miniwhoosh import query
+from miniwhoosh.fields import BOOLEAN
+from miniwhoosh.fields import DATETIME # TODO: pobably we wont support this!
+from miniwhoosh.fields import KEYWORD
+from miniwhoosh.fields import NUMERIC
+from miniwhoosh.fields import TEXT
+from miniwhoosh.fields import Schema
+from miniwhoosh.highlight import HtmlFormatter # TODO: wont support this!
+from miniwhoosh.idsets import BitSet # TODO: AGAIN WAT?
+from miniwhoosh.idsets import DocIdSet # TODO: WAT?!
+from miniwhoosh.index import FileIndex
+from miniwhoosh.index import create_in
+from miniwhoosh.index import exists_in
+from miniwhoosh.index import open_dir
+from miniwhoosh.qparser import MultifieldParser
+from miniwhoosh.qparser import QueryParser
+from miniwhoosh.qparser.dateparse import DateParserPlugin # same as bellow
+from miniwhoosh.qparser.dateparse import English # TODO: again, we may not be able to support this!
+from miniwhoosh.qparser.plugins import FieldsPlugin # TODO: we wont support plugins 
+from miniwhoosh.reading import IndexReader # TODO: WHY THE HELL?
+from miniwhoosh.scoring import TF_IDF # TODO: We will not support scoring as of right now!
+from miniwhoosh.searching import ResultsPage
+from miniwhoosh.searching import Searcher # TODO: my LSP is currently telling me that it is not compatible with "Generator[Any, Any, Any]". Need to fix this.
+from miniwhoosh.util.times import timespan # TODO: check if we want to support this. We may not be able to support timestamps
+from miniwhoosh.writing import AsyncWriter
 
 from documents.models import CustomFieldInstance
 from documents.models import Document

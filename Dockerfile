@@ -213,6 +213,10 @@ WORKDIR /usr/src/paperless/src/
 # Change pretty frequently
 COPY --from=pipenv-base /usr/src/pipenv/requirements.txt ./
 
+# TODO: Here i need to insert my miniwhoosh code
+# Note: i may have to change the location to which i copy my module
+# COPY /path/to/local/site-packages/my_module /usr/local/lib/python3.12/site-packages/my_module
+
 # Packages needed only for building a few quick Python
 # dependencies
 ARG BUILD_PACKAGES="\

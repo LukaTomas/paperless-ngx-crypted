@@ -1,5 +1,5 @@
 from django.test import TestCase
-from whoosh import query
+from miniwhoosh import query
 
 from documents.index import get_permissions_criterias
 from documents.models import User

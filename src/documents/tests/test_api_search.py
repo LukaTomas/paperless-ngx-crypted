@@ -12,7 +12,7 @@ from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from rest_framework import status
 from rest_framework.test import APITestCase
-from whoosh.writing import AsyncWriter
+from miniwhoosh.writing import AsyncWriter
 
 from documents import index
 from documents.bulk_edit import set_permissions

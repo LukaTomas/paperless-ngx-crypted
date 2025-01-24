@@ -16,7 +16,7 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 from filelock import FileLock
-from whoosh.writing import AsyncWriter
+from miniwhoosh.writing import AsyncWriter
 
 from documents import index
 from documents import sanity_checker
