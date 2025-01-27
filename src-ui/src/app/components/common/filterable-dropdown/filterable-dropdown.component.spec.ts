@@ -1,3 +1,5 @@
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { provideHttpClientTesting } from '@angular/common/http/testing'
 import {
   ComponentFixture,
   TestBed,
@@ -51,7 +53,11 @@ describe('FilterableDropdownComponent & FilterableDropdownSelectionModel', () =>
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
-      providers: [FilterPipe],
+      providers: [
+        FilterPipe,
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting(),
+      ],
       imports: [NgxBootstrapIconsModule.pick(allIcons)],
     }).compileComponents()
 
@@ -487,6 +493,38 @@ describe('FilterableDropdownComponent & FilterableDropdownSelectionModel', () =>
       { id: null, name: 'Null B' },
       items[1],
       items[0],
+    ])
+  })
+
+  it('selection model should sort items by state and document counts = 0, if set', () => {
+    const tagA = { id: 4, name: 'Tag A' }
+    component.items = items.concat([tagA])
+    component.selectionModel = selectionModel
+    component.documentCounts = [
+      { id: 1, document_count: 0 }, // Tag1
+      { id: 2, document_count: 1 }, // Tag2
+      { id: 4, document_count: 2 }, // Tag A
+    ]
+    component.selectionModel.apply()
+    expect(selectionModel.items).toEqual([
+      nullItem,
+      tagA,
+      items[1], // Tag2
+      items[0], // Tag1
+    ])
+
+    selectionModel.toggle(items[1].id)
+    component.documentCounts = [
+      { id: 1, document_count: 0 },
+      { id: 2, document_count: 1 },
+      { id: 4, document_count: 0 },
+    ]
+    selectionModel.apply()
+    expect(selectionModel.items).toEqual([
+      nullItem,
+      items[1], // Tag2
+      tagA,
+      items[0], // Tag1
     ])
   })
 
