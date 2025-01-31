@@ -214,8 +214,8 @@ WORKDIR /usr/src/paperless/src/
 COPY --from=pipenv-base /usr/src/pipenv/requirements.txt ./
 
 # TODO: Here i need to insert my miniwhoosh code
-# Note: i may have to change the location to which i copy my module
-# COPY /path/to/local/site-packages/my_module /usr/local/lib/python3.12/site-packages/my_module
+# To be able to do this i need copy the code to the build context (aka this repo). This is done in build-docker.sh
+COPY miniwhoosh /usr/local/lib/python3.12/site-packages/miniwhoosh
 
 # Packages needed only for building a few quick Python
 # dependencies

@@ -11,8 +11,8 @@ from django.conf import settings
 from django.db.models import QuerySet
 from django.utils import timezone as django_timezone
 from guardian.shortcuts import get_users_with_perms
-from miniwhoosh import classify # TODO: check what this does exactly... 
-from miniwhoosh import highlight # TODO: wont support!
+from miniwhoosh import classify
+# from miniwhoosh import highlight # TODO: wont support!
 from miniwhoosh import query
 from miniwhoosh.fields import BOOLEAN
 from miniwhoosh.fields import DATETIME # TODO: pobably we wont support this!
@@ -20,23 +20,23 @@ from miniwhoosh.fields import KEYWORD
 from miniwhoosh.fields import NUMERIC
 from miniwhoosh.fields import TEXT
 from miniwhoosh.fields import Schema
-from miniwhoosh.highlight import HtmlFormatter # TODO: wont support this!
-from miniwhoosh.idsets import BitSet # TODO: AGAIN WAT?
-from miniwhoosh.idsets import DocIdSet # TODO: WAT?!
-from miniwhoosh.index import FileIndex
+# from miniwhoosh.highlight import HtmlFormatter # TODO: wont support this!
+# from miniwhoosh.idsets import BitSet # TODO: AGAIN WAT?
+# from miniwhoosh.idsets import DocIdSet # TODO: WAT?!
+from miniwhoosh.index import Index # a FileIndex is just another Index in out implementation. There is no difference
 from miniwhoosh.index import create_in
 from miniwhoosh.index import exists_in
 from miniwhoosh.index import open_dir
 from miniwhoosh.qparser import MultifieldParser
-from miniwhoosh.qparser import QueryParser
-from miniwhoosh.qparser.dateparse import DateParserPlugin # same as bellow
-from miniwhoosh.qparser.dateparse import English # TODO: again, we may not be able to support this!
-from miniwhoosh.qparser.plugins import FieldsPlugin # TODO: we wont support plugins 
-from miniwhoosh.reading import IndexReader # TODO: WHY THE HELL?
-from miniwhoosh.scoring import TF_IDF # TODO: We will not support scoring as of right now!
+# from miniwhoosh.qparser import QueryParser # Our MultifieldParser is the generic solution
+# from miniwhoosh.qparser.dateparse import DateParserPlugin # same as bellow
+# from miniwhoosh.qparser.dateparse import English # TODO: again, we may not be able to support this!
+# from miniwhoosh.qparser.plugins import FieldsPlugin # TODO: we wont support plugins 
+# from miniwhoosh.reading import IndexReader # TODO: WHY THE HELL?
+# from miniwhoosh.scoring import TF_IDF # TODO: We will not support scoring as of right now!
 from miniwhoosh.searching import ResultsPage
 from miniwhoosh.searching import Searcher # TODO: my LSP is currently telling me that it is not compatible with "Generator[Any, Any, Any]". Need to fix this.
-from miniwhoosh.util.times import timespan # TODO: check if we want to support this. We may not be able to support timestamps
+# from miniwhoosh.util.times import timespan # TODO: check if we want to support this. We may not be able to support timestamps
 from miniwhoosh.writing import AsyncWriter
 
 from documents.models import CustomFieldInstance
@@ -85,7 +85,7 @@ def get_schema() -> Schema:
     )
 
 
-def open_index(recreate=False) -> FileIndex:
+def open_index(recreate=False) -> Index:
     try:
         if exists_in(settings.INDEX_DIR) and not recreate:
             return open_dir(settings.INDEX_DIR, schema=get_schema())
@@ -205,27 +205,27 @@ def remove_document_from_index(document: Document) -> None:
         remove_document(writer, document)
 
 
-class MappedDocIdSet(DocIdSet):
-    """
-    A DocIdSet backed by a set of `Document` IDs.
-    Supports efficiently looking up if a whoosh docnum is in the provided `filter_queryset`.
-    """
-
-    def __init__(self, filter_queryset: QuerySet, ixreader: IndexReader) -> None:
-        super().__init__()
-        document_ids = filter_queryset.order_by("id").values_list("id", flat=True)
-        max_id = document_ids.last() or 0
-        self.document_ids = BitSet(document_ids, size=max_id)
-        self.ixreader = ixreader
-
-    def __contains__(self, docnum) -> bool:
-        document_id = self.ixreader.stored_fields(docnum)["id"]
-        return document_id in self.document_ids
-
-    def __bool__(self) -> Literal[True]:
-        # searcher.search ignores a filter if it's "falsy".
-        # We use this hack so this DocIdSet, when used as a filter, is never ignored.
-        return True
+# class MappedDocIdSet(DocIdSet):
+#     """
+#     A DocIdSet backed by a set of `Document` IDs.
+#     Supports efficiently looking up if a whoosh docnum is in the provided `filter_queryset`.
+#     """
+# 
+#     def __init__(self, filter_queryset: QuerySet, ixreader: IndexReader) -> None:
+#         super().__init__()
+#         document_ids = filter_queryset.order_by("id").values_list("id", flat=True)
+#         max_id = document_ids.last() or 0
+#         self.document_ids = BitSet(document_ids, size=max_id)
+#         self.ixreader = ixreader
+# 
+#     def __contains__(self, docnum) -> bool:
+#         document_id = self.ixreader.stored_fields(docnum)["id"]
+#         return document_id in self.document_ids
+# 
+#     def __bool__(self) -> Literal[True]:
+#         # searcher.search ignores a filter if it's "falsy".
+#         # We use this hack so this DocIdSet, when used as a filter, is never ignored.
+#         return True
 
 
 class DelayedQuery:
@@ -290,14 +290,15 @@ class DelayedQuery:
         page: ResultsPage = self.searcher.search_page(
             q,
             mask=mask,
-            filter=MappedDocIdSet(self.filter_queryset, self.searcher.ixreader),
+            # filter=MappedDocIdSet(self.filter_queryset, self.searcher.ixreader),
             pagenum=math.floor(item.start / self.page_size) + 1,
             pagelen=self.page_size,
             sortedby=sortedby,
             reverse=reverse,
         )
-        page.results.fragmenter = highlight.ContextFragmenter(surround=50)
-        page.results.formatter = HtmlFormatter(tagname="span", between=" ... ")
+        # wont support highlighting in first implementation
+        # page.results.fragmenter = highlight.ContextFragmenter(surround=50)
+        # page.results.formatter = HtmlFormatter(tagname="span", between=" ... ")
 
         if not self.first_score and len(page.results) > 0 and sortedby is None:
             self.first_score = page.results[0].score
@@ -317,20 +318,20 @@ class DelayedQuery:
         return page
 
 
-class LocalDateParser(English):
-    def reverse_timezone_offset(self, d):
-        return (d.replace(tzinfo=django_timezone.get_current_timezone())).astimezone(
-            timezone.utc,
-        )
-
-    def date_from(self, *args, **kwargs):
-        d = super().date_from(*args, **kwargs)
-        if isinstance(d, timespan):
-            d.start = self.reverse_timezone_offset(d.start)
-            d.end = self.reverse_timezone_offset(d.end)
-        elif isinstance(d, datetime):
-            d = self.reverse_timezone_offset(d)
-        return d
+# class LocalDateParser(English):
+#     def reverse_timezone_offset(self, d):
+#         return (d.replace(tzinfo=django_timezone.get_current_timezone())).astimezone(
+#             timezone.utc,
+#         )
+# 
+#     def date_from(self, *args, **kwargs):
+#         d = super().date_from(*args, **kwargs)
+#         if isinstance(d, timespan):
+#             d.start = self.reverse_timezone_offset(d.start)
+#             d.end = self.reverse_timezone_offset(d.end)
+#         elif isinstance(d, datetime):
+#             d = self.reverse_timezone_offset(d)
+#         return d
 
 
 class DelayedFullTextQuery(DelayedQuery):
@@ -348,12 +349,13 @@ class DelayedFullTextQuery(DelayedQuery):
             ],
             self.searcher.ixreader.schema,
         )
-        qp.add_plugin(
-            DateParserPlugin(
-                basedate=django_timezone.now(),
-                dateparser=LocalDateParser(),
-            ),
-        )
+        # wont support plugins
+        # qp.add_plugin(
+        #     DateParserPlugin(
+        #         basedate=django_timezone.now(),
+        #         dateparser=LocalDateParser(),
+        #     ),
+        # )
         q = qp.parse(q_str)
 
         corrected = self.searcher.correct_query(q, q_str)
@@ -385,7 +387,7 @@ class DelayedMoreLikeThisQuery(DelayedQuery):
 
 
 def autocomplete(
-    ix: FileIndex,
+    ix: Index,
     term: str,
     limit: int = 10,
     user: User | None = None,
@@ -396,11 +398,11 @@ def autocomplete(
     """
     terms = []
 
-    with ix.searcher(weighting=TF_IDF()) as s:
-        qp = QueryParser("content", schema=ix.schema)
+    with ix.searcher() as s: # wont do any weighting
+        qp = MultifieldParser(["content"], schema=ix.schema) # we need to pass a list of fields
         # Don't let searches with a query that happen to match a field override the
         # content field query instead and return bogus, not text data
-        qp.remove_plugin_class(FieldsPlugin)
+        # qp.remove_plugin_class(FieldsPlugin) # Wont support plugins
         q = qp.parse(f"{term.lower()}*")
         user_criterias: list = get_permissions_criterias(user)
 
