@@ -169,7 +169,8 @@ def _parse_beat_schedule() -> dict:
             "task": "paperless_mail.tasks.process_mail_accounts",
             "options": {
                 # 1 minute before default schedule sends again
-                "expires": 9.0 * 60.0,
+                "expires": 9.0
+                * 60.0,
             },
         },
         {
@@ -180,7 +181,8 @@ def _parse_beat_schedule() -> dict:
             "task": "documents.tasks.train_classifier",
             "options": {
                 # 1 minute before default schedule sends again
-                "expires": 59.0 * 60.0,
+                "expires": 59.0
+                * 60.0,
             },
         },
         {
@@ -191,7 +193,9 @@ def _parse_beat_schedule() -> dict:
             "task": "documents.tasks.index_optimize",
             "options": {
                 # 1 hour before default schedule sends again
-                "expires": 23.0 * 60.0 * 60.0,
+                "expires": 23.0
+                * 60.0
+                * 60.0,
             },
         },
         {
@@ -202,7 +206,9 @@ def _parse_beat_schedule() -> dict:
             "task": "documents.tasks.sanity_check",
             "options": {
                 # 1 hour before default schedule sends again
-                "expires": ((7.0 * 24.0) - 1.0) * 60.0 * 60.0,
+                "expires": ((7.0 * 24.0) - 1.0)
+                * 60.0
+                * 60.0,
             },
         },
         {
@@ -213,7 +219,9 @@ def _parse_beat_schedule() -> dict:
             "task": "documents.tasks.empty_trash",
             "options": {
                 # 1 hour before default schedule sends again
-                "expires": 23.0 * 60.0 * 60.0,
+                "expires": 23.0
+                * 60.0
+                * 60.0,
             },
         },
         {
@@ -224,7 +232,8 @@ def _parse_beat_schedule() -> dict:
             "task": "documents.tasks.check_scheduled_workflows",
             "options": {
                 # 1 minute before default schedule sends again
-                "expires": 59.0 * 60.0,
+                "expires": 59.0
+                * 60.0,
             },
         },
     ]
@@ -529,13 +538,32 @@ X_FRAME_OPTIONS = "ANY" if DEBUG else "SAMEORIGIN"
 
 
 # The next 3 settings can also be set using just PAPERLESS_URL
-CSRF_TRUSTED_ORIGINS = __get_list("PAPERLESS_CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = __get_list(
+    "PAPERLESS_CSRF_TRED_ORIGINS",
+    [
+        "http://localhost:8000",
+        "http://localhost:4200",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
+)
 
 # We allow CORS from localhost:8000
 CORS_ALLOWED_ORIGINS = __get_list(
-    "PAPERLESS_CORS_ALLOWED_HOSTS",
-    ["http://localhost:8000"],
+    "PAPERLESS_CORS_ALED_HOSTS",
+    [
+        "http://localhost:8000",
+        "http://localhost:4200",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
 )
+
+CORS_ALLOW_CREDENTIALS = True
 
 if DEBUG:
     # Allow access from the angular development server during debugging
@@ -855,9 +883,9 @@ CACHES = {
 }
 
 if DEBUG and os.getenv("PAPERLESS_CACHE_BACKEND") is None:
-    CACHES["default"]["BACKEND"] = (
-        "django.core.cache.backends.locmem.LocMemCache"  # pragma: no cover
-    )
+    CACHES["default"][
+        "BACKEND"
+    ] = "django.core.cache.backends.locmem.LocMemCache"  # pragma: no cover
 
 
 def default_threads_per_worker(task_workers) -> int:

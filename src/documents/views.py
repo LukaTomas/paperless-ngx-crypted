@@ -53,6 +53,7 @@ from langdetect import detect
 from packaging import version as packaging_version
 from redis import Redis
 from rest_framework import parsers
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.filters import OrderingFilter
@@ -864,8 +865,10 @@ class UnifiedSearchViewSet(DocumentViewSet):
         return (
             "query" in self.request.query_params
             or "more_like_id" in self.request.query_params
+            or "title_content" in self.request.query_params
         )
 
+    # TODO: we need to figure out how the queryset is stored!
     def filter_queryset(self, queryset):
         filtered_queryset = super().filter_queryset(queryset)
 
@@ -1693,9 +1696,9 @@ class UiSettingsView(GenericAPIView):
         if hasattr(user, "ui_settings"):
             ui_settings = user.ui_settings.settings
         if "update_checking" in ui_settings:
-            ui_settings["update_checking"]["backend_setting"] = (
-                settings.ENABLE_UPDATE_CHECK
-            )
+            ui_settings["update_checking"][
+                "backend_setting"
+            ] = settings.ENABLE_UPDATE_CHECK
         else:
             ui_settings["update_checking"] = {
                 "backend_setting": settings.ENABLE_UPDATE_CHECK,
@@ -2271,3 +2274,83 @@ class TrashView(ListModelMixin, PassUserMixin):
                 doc_ids = [doc.id for doc in docs]
             empty_trash(doc_ids=doc_ids)
         return Response({"result": "OK", "doc_ids": doc_ids})
+
+
+class SearchView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        from documents import index
+        from miniwhoosh.qparser import MultifieldParser
+        from miniwhoosh.query import Query
+        from miniwhoosh.searching import Results
+
+        query = request.query_params.get("title_content")
+
+        with index.open_index_searcher() as searcher:
+            # TODO: we need a way to search in configurable fields. Will hardcode for now.
+            qp = MultifieldParser(
+                ["title", "content"], schema=index.get_schema()
+            )  # search for both title and content
+            try:
+                results: Results = None
+                q: Query = None
+                if not query:
+                    results = searcher.documents()
+                else:
+                    q = qp.parse(query)
+                    results = searcher.search(q)
+
+                # Convert results to JSON format
+                results_list = []
+                for hit in results:
+                    document = hit.document
+                    results_list.append(
+                        {
+                            "id": document.content.get("id"),
+                            "correspondent": document.content.get("correspondent"),
+                            "document_type": None,
+                            "storage_path": None,
+                            "title": document.content.get("title", document.content.get("original_filename", "")),
+                            # "content": document.content["content"],
+                            "tags": [],
+                            "created": document.content.get("created"),
+                            "created_date": document.content.get("created"),
+                            "modified": document.content.get("modified"),
+                            "added": document.content.get("added"),
+                            "deleted_at": None,
+                            "archive_serial_number": document.content.get("asn"),
+                            "original_file_name": document.content.get("original_filename"),
+                            "archived_file_name": None,
+                            "owner": document.content.get("owner"),
+                            "user_can_change": True,
+                            "is_shared_by_requester": False,
+                            "notes": [],
+                            "custom_fields": document.content.get("custom_fields"),
+                            "page_count": document.content.get("page_count"),
+                            "mime_type": document.content.get("type"),
+                        }
+                    )
+
+                response_data = {
+                    "count": len(results),
+                    "next": None,
+                    "previous": None,
+                    "all": list(results.docs()),
+                    "results": results_list,
+                }
+                return Response(response_data)
+            except Exception as e:
+                logger.error(f"Error searching for query {q}. Error: {e}")
+
+
+class UploadDocumentView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        from documents import index
+
+        with index.open_index_writer() as writer:
+            writer.merge_uploaded_data(request.data)
+
+        return Response("SUCESS!")

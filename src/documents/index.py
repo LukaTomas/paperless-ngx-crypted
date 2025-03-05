@@ -2,14 +2,11 @@ import logging
 import math
 from collections import Counter
 from contextlib import contextmanager
-from datetime import datetime
-from datetime import timezone
 from shutil import rmtree
 from typing import Literal
 
 from django.conf import settings
 from django.db.models import QuerySet
-from django.utils import timezone as django_timezone
 from guardian.shortcuts import get_users_with_perms
 from miniwhoosh import classify
 # from miniwhoosh import highlight # TODO: wont support!
@@ -303,16 +300,6 @@ class DelayedQuery:
         if not self.first_score and len(page.results) > 0 and sortedby is None:
             self.first_score = page.results[0].score
 
-        page.results.top_n = list(
-            map(
-                lambda hit: (
-                    (hit[0] / self.first_score) if self.first_score else None,
-                    hit[1],
-                ),
-                page.results.top_n,
-            ),
-        )
-
         self.saved_results[item.start] = page
 
         return page
@@ -347,7 +334,7 @@ class DelayedFullTextQuery(DelayedQuery):
                 "notes",
                 "custom_fields",
             ],
-            self.searcher.ixreader.schema,
+            self.searcher.index.schema,
         )
         # wont support plugins
         # qp.add_plugin(
@@ -357,10 +344,6 @@ class DelayedFullTextQuery(DelayedQuery):
         #     ),
         # )
         q = qp.parse(q_str)
-
-        corrected = self.searcher.correct_query(q, q_str)
-        if corrected.query != q:
-            corrected.query = corrected.string
 
         return q, None
 

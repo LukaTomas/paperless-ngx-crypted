@@ -44,6 +44,8 @@ from documents.views import UnifiedSearchViewSet
 from documents.views import WorkflowActionViewSet
 from documents.views import WorkflowTriggerViewSet
 from documents.views import WorkflowViewSet
+from documents.views import SearchView
+from documents.views import UploadDocumentView  
 from paperless.consumers import StatusConsumer
 from paperless.views import ApplicationConfigurationViewSet
 from paperless.views import DisconnectSocialAccountView
@@ -202,6 +204,24 @@ urlpatterns = [
                     r"^oauth/callback/",
                     OauthCallbackView.as_view(),
                     name="oauth_callback",
+                ),
+                # index
+                re_path(
+                    "^miniwhoosh/",
+                    include(
+                        [
+                            path(
+                                "search/",
+                                SearchView.as_view(),
+                                name="index_search"
+                            ),
+                            path(
+                                "upload_document/",
+                                UploadDocumentView.as_view(),
+                                name="upload_document"
+                            )
+                        ]
+                    )
                 ),
                 *api_router.urls,
             ],
